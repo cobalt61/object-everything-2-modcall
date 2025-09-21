@@ -9,6 +9,8 @@ const webhookUrl = process.env.WEBHOOK_URL;
 
 app.post("/modcall", async (req, res) => {
   const data = req.body;
+  const thumbRes = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${data.userId}&size=150x150&format=Png&isCircular=true`);
+  const avatarUrl = thumbRes.data.data[0].imageUrl;
 
   // Construct the embed
   const embed = {
@@ -23,7 +25,7 @@ app.post("/modcall", async (req, res) => {
       { name: "JobId", value: data.jobId, inline: false },
     ],
     thumbnail: {
-      url: data.avatarUrl || `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${data.userId}&size=150x150&format=Png&isCircular=true`.imageUrl, // fix if doesn't work
+      url: avatarUrl;
     },
   };
 
