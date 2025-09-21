@@ -5,7 +5,7 @@ const axios = require("axios");
 const app = express();
 app.use(bodyParser.json());
 
-const webhookUrl = process.env.WEBHOOK_URL;
+const webhookUrl = process.env.DISCORD_WEBHOOK;
 
 app.post("/modcall", async (req, res) => {
   const data = req.body;
@@ -49,12 +49,12 @@ app.post("/modcall", async (req, res) => {
       embeds: [embed],
       components: components
     });
+    console.log("Worked");
     res.status(200).json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });
   }
 });
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
