@@ -6,7 +6,7 @@ const app = express();
 app.use(bodyParser.json());
 
 const PORT = process.env.PORT || 3000;
-const webhookUrl = process.env.DISCORD_WEBHOOK;
+const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
 
 // Helper to fetch Roblox avatar safely
 async function getAvatarUrl(userId) {
