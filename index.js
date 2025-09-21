@@ -25,7 +25,7 @@ app.post("/modcall", async (req, res) => {
       { name: "JobId", value: data.jobId, inline: false },
     ],
     thumbnail: {
-      url: avatarUrl;
+      url: avatarUrl
     },
   };
 
