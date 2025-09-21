@@ -13,7 +13,7 @@ app.post("/modcall", async (req, res) => {
   // Construct the embed
   const embed = {
     title: "🚨 Mod Call",
-    description: `@Mods\n**${data.username}** is calling a mod in **${data.gameName}**!`,
+    description: `@Admin\n**${data.username}** is calling a mod in **${data.gameName}**!`,
     color: 0xff0000, // red
     fields: [
       { name: "Reason", value: data.reason, inline: false },
