@@ -1,6 +1,6 @@
 const express = require("express");
-const fetch = require("node-fetch"); // make sure you installed node-fetch
 const bodyParser = require("body-parser");
+const axios = require("axios");
 
 const app = express();
 app.use(bodyParser.json());
@@ -12,9 +12,8 @@ const webhookUrl = process.env.DISCORD_WEBHOOK;
 async function getAvatarUrl(userId) {
   try {
     const robloxApi = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=true`;
-    const res = await fetch(robloxApi);
-    const data = await res.json();
-    return data?.data?.[0]?.imageUrl || "";
+    const res = await axios.get(robloxApi);
+    return res.data?.data?.[0]?.imageUrl || "";
   } catch (err) {
     console.warn("Failed to fetch Roblox avatar:", err.message);
     return "";
@@ -24,10 +23,10 @@ async function getAvatarUrl(userId) {
 app.post("/modcall", async (req, res) => {
   const data = req.body;
 
-  // Get the avatar URL
+  // Fetch avatar URL
   const avatarUrl = await getAvatarUrl(data.userId);
 
-  // Construct embed
+  // Construct the embed
   const embed = {
     title: "🚨 Mod Call",
     description: `@Admin\n**${data.username}** is calling a mod in **${data.gameName}**!`,
@@ -59,19 +58,11 @@ app.post("/modcall", async (req, res) => {
     },
   ];
 
-  // Send webhook with fetch
   try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed], components }),
+    await axios.post(webhookUrl, {
+      embeds: [embed],
+      components,
     });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Discord webhook failed:", response.status, text);
-      return res.status(500).json({ success: false, error: text });
-    }
 
     console.log("Mod call sent successfully!");
     res.status(200).json({ success: true });
