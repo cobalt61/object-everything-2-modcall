@@ -5,71 +5,60 @@ const axios = require("axios");
 const app = express();
 app.use(bodyParser.json());
 
-const PORT = process.env.PORT || 3000;
-const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-
-// Helper to fetch Roblox avatar safely
-async function getAvatarUrl(userId) {
-  try {
-    const robloxApi = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=true`;
-    const res = await axios.get(robloxApi);
-    return res.data?.data?.[0]?.imageUrl || "";
-  } catch (err) {
-    console.warn("Failed to fetch Roblox avatar:", err.message);
-    return "";
-  }
-}
+const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
+const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID; // add this as a secret too
 
 app.post("/modcall", async (req, res) => {
-  const data = req.body;
+    const data = req.body;
 
-  // Fetch avatar URL
-  const avatarUrl = await getAvatarUrl(data.userId);
+    // Build embed
+    const embed = {
+        title: "🚨 Mod Call",
+        description: `@Admin\n**${data.username}** is calling a mod in **${data.gameName}**!`,
+        color: 0xff0000,
+        fields: [
+            { name: "Reason", value: data.reason, inline: false },
+            { name: "Display Name", value: data.displayName, inline: true },
+            { name: "Username", value: data.username, inline: true },
+            { name: "UserId", value: data.userId.toString(), inline: true },
+            { name: "JobId", value: data.jobId, inline: false },
+        ],
+        thumbnail: {
+            url: `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${data.userId}&size=150x150&format=Png&isCircular=true`
+        }
+    };
 
-  // Construct the embed
-  const embed = {
-    title: "🚨 Mod Call",
-    description: `@Admin\n**${data.username}** is calling a mod in **${data.gameName}**!`,
-    color: 0xff0000,
-    fields: [
-      { name: "Reason", value: data.reason || "N/A", inline: false },
-      { name: "Display Name", value: data.displayName || "N/A", inline: true },
-      { name: "Username", value: data.username || "N/A", inline: true },
-      { name: "UserId", value: (data.userId || "N/A").toString(), inline: true },
-      { name: "JobId", value: data.jobId || "N/A", inline: false },
-    ],
-    thumbnail: { url: avatarUrl },
-  };
-
-  // Button component
-  const components = [
-    {
-      type: 1,
-      components: [
+    // Button component
+    const components = [
         {
-          type: 2,
-          style: 5, // Link button
-          label: "Join the server!",
-          url: `https://www.roblox.com/games/${data.placeId}?launchData=${encodeURIComponent(
-            JSON.stringify({ jobId: data.jobId })
-          )}`,
-        },
-      ],
-    },
-  ];
+            type: 1,
+            components: [
+                {
+                    type: 2,
+                    style: 5, // Link button
+                    label: "Join the server!",
+                    url: `https://www.roblox.com/games/${data.placeId}?launchData=${encodeURIComponent(JSON.stringify({ jobId: data.jobId }))}`
+                }
+            ]
+        }
+    ];
 
-  try {
-    await axios.post(webhookUrl, {
-      embeds: [embed],
-      components,
-    });
-
-    console.log("Mod call sent successfully!");
-    res.status(200).json({ success: true });
-  } catch (err) {
-    console.error("Failed to send Discord webhook:", err.message);
-    res.status(500).json({ success: false, error: err.message });
-  }
+    try {
+        await axios.post(
+            `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`,
+            { embeds: [embed], components },
+            { headers: { 
+                "Authorization": `Bot ${BOT_TOKEN}`, 
+                "Content-Type": "application/json" 
+            } }
+        );
+        console.log("Mod call sent!");
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error("Failed to send Discord message:", err.response?.data || err.message);
+        res.status(500).json({ success: false });
+    }
 });
 
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
