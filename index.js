@@ -1,28 +1,33 @@
 const express = require("express");
+const fetch = require("node-fetch"); // make sure you installed node-fetch
 const bodyParser = require("body-parser");
-const axios = require("axios");
 
 const app = express();
 app.use(bodyParser.json());
 
+const PORT = process.env.PORT || 3000;
 const webhookUrl = process.env.DISCORD_WEBHOOK;
+
+// Helper to fetch Roblox avatar safely
+async function getAvatarUrl(userId) {
+  try {
+    const robloxApi = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=true`;
+    const res = await fetch(robloxApi);
+    const data = await res.json();
+    return data?.data?.[0]?.imageUrl || "";
+  } catch (err) {
+    console.warn("Failed to fetch Roblox avatar:", err.message);
+    return "";
+  }
+}
 
 app.post("/modcall", async (req, res) => {
   const data = req.body;
 
-  // Fetch Roblox headshot safely
-  let avatarUrl = "";
-  try {
-    const thumbRes = await axios.get(
-      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${data.userId}&size=150x150&format=Png&isCircular=true`
-    );
-    avatarUrl = thumbRes.data?.data?.[0]?.imageUrl || "";
-  } catch (err) {
-    console.warn("Failed to fetch Roblox avatar:", err.message);
-    avatarUrl = "";
-  }
+  // Get the avatar URL
+  const avatarUrl = await getAvatarUrl(data.userId);
 
-  // Construct the embed
+  // Construct embed
   const embed = {
     title: "🚨 Mod Call",
     description: `@Admin\n**${data.username}** is calling a mod in **${data.gameName}**!`,
@@ -37,7 +42,7 @@ app.post("/modcall", async (req, res) => {
     thumbnail: { url: avatarUrl },
   };
 
-  // Button payload
+  // Button component
   const components = [
     {
       type: 1,
@@ -54,11 +59,20 @@ app.post("/modcall", async (req, res) => {
     },
   ];
 
+  // Send webhook with fetch
   try {
-    await axios.post(webhookUrl, {
-      embeds: [embed],
-      components: components,
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ embeds: [embed], components }),
     });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Discord webhook failed:", response.status, text);
+      return res.status(500).json({ success: false, error: text });
+    }
+
     console.log("Mod call sent successfully!");
     res.status(200).json({ success: true });
   } catch (err) {
@@ -67,5 +81,4 @@ app.post("/modcall", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
